@@ -1,8 +1,8 @@
 # 🔍 ProtoScope
 
-**ProtoScope** is a comprehensive, **standalone** security testing tool for VPN/Proxy protocols. It tests subscription links for connectivity, performance, geo-access, DNS security, and privacy.
+**ProtoScope** is a comprehensive security testing tool for VPN/Proxy protocols. It tests subscription links for connectivity, performance, geo-access, DNS security, and privacy.
 
-**✨ Zero Dependencies** - Sing-box is embedded directly into the binary. No external tools required!
+**🎯 Powered by Sing-box** - Universal support for all modern proxy protocols!
 
 ## ✨ Features
 
@@ -17,15 +17,15 @@
 | **Hysteria2** | ✅ | ✅ | Fully Supported |
 | **TUIC** | ✅ | ✅ | Fully Supported |
 
-**🎯 Embedded Sing-box:**
-ProtoScope embeds **Sing-box** directly into the binary as the universal backend for all protocols. Sing-box is a modern, feature-rich proxy platform that supports:
+**🎯 Powered by Sing-box:**
+ProtoScope uses **Sing-box** as the universal backend for all protocols. Sing-box is a modern, feature-rich proxy platform that supports:
 - ✅ Traditional protocols (VMess, VLESS, Trojan, Shadowsocks)
 - ✅ Modern QUIC-based protocols (Hysteria2, TUIC)
-- ✅ And many more!
+- ✅ Active development and excellent performance
 
-This **embedded approach** provides:
-- 🚀 **Zero installation** - just download and run
-- 📦 **Single binary** - no external dependencies
+This **unified approach** provides:
+- 🚀 **One backend for all** - no switching between tools
+- 📦 **Modern architecture** - supports latest protocols
 - 🔄 **Maximum compatibility** - all protocols in one tool
 
 ### 🔬 Test Categories
@@ -59,22 +59,34 @@ This **embedded approach** provides:
 
 ## 📋 Requirements
 
-### 🎯 Zero Dependencies!
+### System Requirements
+- Go 1.20 or higher (for building from source)
+- **Sing-box** (required)
 
-**ProtoScope is completely standalone** - no external binaries required!
+### Installing Sing-box
 
-Sing-box is **embedded directly into the ProtoScope binary**, which means:
-- ✅ **No installation** of sing-box or any other tool required
-- ✅ **Single executable** - just download and run
-- ✅ **Cross-platform** - works on Linux, macOS, Windows
-- ✅ **All protocols supported** out of the box (VMess, VLESS, Trojan, Shadowsocks, Hysteria2, TUIC)
-- ✅ **Portable** - carry it on a USB stick, no setup needed
+**Linux:**
+```bash
+bash <(curl -fsSL https://sing-box.app/deb-install.sh)
+```
 
-Simply download the binary and you're ready to test!
+**macOS:**
+```bash
+brew install sing-box
+```
 
-### Build Requirements (Optional)
-Only needed if building from source:
-- Go 1.20 or higher
+**Windows:**
+Download from [Sing-box Releases](https://github.com/SagerNet/sing-box/releases)
+
+**Verify:**
+```bash
+sing-box version
+```
+
+**Why Sing-box?** ProtoScope uses Sing-box as the universal backend because it supports **all protocols** natively:
+- ✅ Traditional protocols (VMess, VLESS, Trojan, Shadowsocks)
+- ✅ Modern QUIC-based protocols (Hysteria2, TUIC)
+- ✅ Active development and excellent performance
 
 ## 🚀 Installation
 
@@ -373,8 +385,7 @@ dns_blocking:
 - [x] **Sing-box integration for all protocols**
 - [x] **Full test runner implementation**
 - [x] **Multiple output formats (console, JSON, markdown)**
-- [x] **Embedded Sing-box (zero dependencies!)**
-- [x] **Standalone single binary with all protocols**
+- [x] **Universal Sing-box backend**
 - [x] **All protocols support (VMess, VLESS, Trojan, Shadowsocks, Hysteria2, TUIC)**
 - [x] **Comprehensive error diagnostics and troubleshooting**
 - [ ] WebRTC leak testing (browser automation required)
