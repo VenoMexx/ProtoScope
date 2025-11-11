@@ -27,6 +27,15 @@ func NewTestRunner(config *models.Config) *TestRunner {
 
 // RunTests runs all tests for the given protocols
 func (tr *TestRunner) RunTests(ctx context.Context, protocols []*models.Protocol) ([]*models.TestResult, error) {
+	return tr.runTests(ctx, protocols, nil)
+}
+
+// RunTestsStream runs tests and invokes onResult for each completed protocol.
+func (tr *TestRunner) RunTestsStream(ctx context.Context, protocols []*models.Protocol, onResult func(int, *models.TestResult)) ([]*models.TestResult, error) {
+	return tr.runTests(ctx, protocols, onResult)
+}
+
+func (tr *TestRunner) runTests(ctx context.Context, protocols []*models.Protocol, onResult func(int, *models.TestResult)) ([]*models.TestResult, error) {
 	// Get real IP first (without proxy)
 	realIP, err := checks.GetRealIP(ctx)
 	if err != nil {
@@ -52,6 +61,10 @@ func (tr *TestRunner) RunTests(ctx context.Context, protocols []*models.Protocol
 			defer func() { <-sem }()
 
 			result := tr.testProtocol(ctx, proto)
+
+			if onResult != nil {
+				onResult(idx, result)
+			}
 
 			mu.Lock()
 			results[idx] = result
