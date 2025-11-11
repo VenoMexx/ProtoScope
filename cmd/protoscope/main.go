@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/VenoMexx/ProtoScope/internal/parser"
@@ -180,86 +181,93 @@ func runQuickTests(ctx context.Context, runner *tester.TestRunner, protocols []*
 
 // runFullTests runs comprehensive tests
 func runFullTests(ctx context.Context, runner *tester.TestRunner, protocols []*models.Protocol) []*models.TestResult {
-	results, err := runner.RunTests(ctx, protocols)
+	total := len(protocols)
+	var printMu sync.Mutex
+
+	results, err := runner.RunTestsStream(ctx, protocols, func(idx int, result *models.TestResult) {
+		if result == nil || result.Protocol == nil {
+			return
+		}
+
+		printMu.Lock()
+		defer printMu.Unlock()
+
+		printFullTestResult(result, idx, total)
+	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "❌ Error running tests: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Print results as they come
-	for i, result := range results {
-		if result == nil {
-			continue
-		}
+	return results
+}
 
-		fmt.Printf("[%d/%d] %s [%s]\n", i+1, len(protocols), result.Protocol.Name, result.Protocol.Type)
-		fmt.Printf("       Server: %s:%d\n", result.Protocol.Server, result.Protocol.Port)
+func printFullTestResult(result *models.TestResult, idx, total int) {
+	fmt.Printf("[%d/%d] %s [%s]\n", idx+1, total, result.Protocol.Name, result.Protocol.Type)
+	fmt.Printf("       Server: %s:%d\n", result.Protocol.Server, result.Protocol.Port)
 
-		if !result.Success {
-			// Check if it's an unsupported protocol error
-			if strings.Contains(result.Error, "not yet supported") {
-				fmt.Printf("       ⚠ Skipped: %s\n\n", result.Error)
-			} else {
-				fmt.Printf("       ✗ Failed: %s\n", result.Error)
+	if !result.Success {
+		// Check if it's an unsupported protocol error
+		if strings.Contains(result.Error, "not yet supported") {
+			fmt.Printf("       ⚠ Skipped: %s\n\n", result.Error)
+		} else {
+			fmt.Printf("       ✗ Failed: %s\n", result.Error)
 
-				// Show detailed error analysis if available
-				if result.ErrorDetails != nil {
-					fmt.Printf("       📋 Type: %s\n", result.ErrorDetails.Type)
-					if result.ErrorDetails.Details != "" {
-						fmt.Printf("       📝 Details: %s\n", result.ErrorDetails.Details)
-					}
-					if *verbose && result.ErrorDetails.BackendLog != "" {
-						fmt.Printf("       🔍 Backend Log:\n")
-						logLines := strings.Split(result.ErrorDetails.BackendLog, "\n")
-						for _, line := range logLines {
-							if strings.TrimSpace(line) != "" {
-								fmt.Printf("          %s\n", line)
-							}
+			// Show detailed error analysis if available
+			if result.ErrorDetails != nil {
+				fmt.Printf("       📋 Type: %s\n", result.ErrorDetails.Type)
+				if result.ErrorDetails.Details != "" {
+					fmt.Printf("       📝 Details: %s\n", result.ErrorDetails.Details)
+				}
+				if *verbose && result.ErrorDetails.BackendLog != "" {
+					fmt.Printf("       🔍 Backend Log:\n")
+					logLines := strings.Split(result.ErrorDetails.BackendLog, "\n")
+					for _, line := range logLines {
+						if strings.TrimSpace(line) != "" {
+							fmt.Printf("          %s\n", line)
 						}
 					}
-					fmt.Printf("       💡 Suggestion: %s\n", result.ErrorDetails.Suggestion)
 				}
-				fmt.Println()
+				fmt.Printf("       💡 Suggestion: %s\n", result.ErrorDetails.Suggestion)
 			}
-			continue
+			fmt.Println()
 		}
-
-		fmt.Printf("       ✓ Connected (%dms)\n", result.Connectivity.ResponseTime.Milliseconds())
-
-		if result.Performance != nil {
-			fmt.Printf("       📊 Speed: ↓%.1f Mbps\n", result.Performance.DownloadSpeed)
-			fmt.Printf("       ⏱  Latency: %dms\n", result.Performance.Latency.Milliseconds())
-		}
-
-		if result.GeoAccess != nil && *verbose {
-			fmt.Printf("       🌍 Geo: %d/%d accessible (%.0f%%)\n",
-				result.GeoAccess.Summary.TotalAccessible,
-				result.GeoAccess.Summary.TotalTested,
-				result.GeoAccess.Summary.AccessPercentage)
-		}
-
-		if result.DNS != nil && *verbose {
-			leak := "✓"
-			if result.DNS.LeakDetection != nil && result.DNS.LeakDetection.IsLeaking {
-				leak = "⚠"
-			}
-			fmt.Printf("       🔒 DNS Leak: %s\n", leak)
-
-			if result.DNS.Blocking != nil {
-				fmt.Printf("       🛡  Blocked: %d/%d domains\n",
-					result.DNS.Blocking.Summary.TotalBlocked,
-					result.DNS.Blocking.Summary.TotalTested)
-			}
-		}
-
-		if result.Privacy != nil && *verbose {
-			fmt.Printf("       🔐 Security Score: %d/100\n", result.Privacy.Score)
-		}
-
-		fmt.Println()
+		return
 	}
 
-	return results
+	fmt.Printf("       ✓ Connected (%dms)\n", result.Connectivity.ResponseTime.Milliseconds())
+
+	if result.Performance != nil {
+		fmt.Printf("       📊 Speed: ↓%.1f Mbps\n", result.Performance.DownloadSpeed)
+		fmt.Printf("       ⏱  Latency: %dms\n", result.Performance.Latency.Milliseconds())
+	}
+
+	if result.GeoAccess != nil && *verbose {
+		fmt.Printf("       🌍 Geo: %d/%d accessible (%.0f%%)\n",
+			result.GeoAccess.Summary.TotalAccessible,
+			result.GeoAccess.Summary.TotalTested,
+			result.GeoAccess.Summary.AccessPercentage)
+	}
+
+	if result.DNS != nil && *verbose {
+		leak := "✓"
+		if result.DNS.LeakDetection != nil && result.DNS.LeakDetection.IsLeaking {
+			leak = "⚠"
+		}
+		fmt.Printf("       🔒 DNS Leak: %s\n", leak)
+
+		if result.DNS.Blocking != nil {
+			fmt.Printf("       🛡  Blocked: %d/%d domains\n",
+				result.DNS.Blocking.Summary.TotalBlocked,
+				result.DNS.Blocking.Summary.TotalTested)
+		}
+	}
+
+	if result.Privacy != nil && *verbose {
+		fmt.Printf("       🔐 Security Score: %d/100\n", result.Privacy.Score)
+	}
+
+	fmt.Println()
 }
 
 func outputJSON(results []*models.TestResult) {
