@@ -36,6 +36,7 @@ type TestResult struct {
 	Timestamp     time.Time           `json:"timestamp"`
 	Success       bool                `json:"success"`
 	Error         string              `json:"error,omitempty"`
+	ErrorDetails  *DetailedError      `json:"error_details,omitempty"`
 	Connectivity  *ConnectivityResult `json:"connectivity,omitempty"`
 	Performance   *PerformanceResult  `json:"performance,omitempty"`
 	GeoAccess     *GeoAccessResult    `json:"geo_access,omitempty"`

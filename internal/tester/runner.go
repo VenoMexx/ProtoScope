@@ -82,6 +82,7 @@ func (tr *TestRunner) testProtocol(ctx context.Context, protocol *models.Protoco
 
 	if err := proxyMgr.Start(proxyCtx); err != nil {
 		result.Error = fmt.Sprintf("Failed to start proxy: %v", err)
+		result.ErrorDetails = proxyMgr.GetLastError(err)
 		return result
 	}
 	defer proxyMgr.Stop()
@@ -90,6 +91,7 @@ func (tr *TestRunner) testProtocol(ctx context.Context, protocol *models.Protoco
 	client, err := proxyMgr.GetHTTPClient(tr.config.TestConfig.Timeout)
 	if err != nil {
 		result.Error = fmt.Sprintf("Failed to create HTTP client: %v", err)
+		result.ErrorDetails = proxyMgr.GetLastError(err)
 		return result
 	}
 
@@ -184,6 +186,7 @@ func (tr *TestRunner) QuickTest(ctx context.Context, protocol *models.Protocol) 
 
 	if err := proxyMgr.Start(proxyCtx); err != nil {
 		result.Error = fmt.Sprintf("Failed to start proxy: %v", err)
+		result.ErrorDetails = proxyMgr.GetLastError(err)
 		return result, nil
 	}
 	defer proxyMgr.Stop()
@@ -192,6 +195,7 @@ func (tr *TestRunner) QuickTest(ctx context.Context, protocol *models.Protocol) 
 	client, err := proxyMgr.GetHTTPClient(10 * time.Second)
 	if err != nil {
 		result.Error = fmt.Sprintf("Failed to create HTTP client: %v", err)
+		result.ErrorDetails = proxyMgr.GetLastError(err)
 		return result, nil
 	}
 
@@ -201,6 +205,9 @@ func (tr *TestRunner) QuickTest(ctx context.Context, protocol *models.Protocol) 
 	if err != nil || !connectivityResult.Connected {
 		result.Error = "Connectivity test failed"
 		result.Connectivity = connectivityResult
+		if err != nil {
+			result.ErrorDetails = proxyMgr.GetLastError(err)
+		}
 		return result, nil
 	}
 

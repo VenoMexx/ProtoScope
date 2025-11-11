@@ -1,6 +1,7 @@
 package tester
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -25,6 +26,9 @@ type ProxyManager struct {
 	socksPort    int
 	configFile   string
 	isRunning    bool
+	stderrBuf    *bytes.Buffer
+	stdoutBuf    *bytes.Buffer
+	verbose      bool
 }
 
 // NewProxyManager creates a new proxy manager
@@ -36,7 +40,32 @@ func NewProxyManager(protocol *models.Protocol, socksPort int) *ProxyManager {
 		socksAddress: "127.0.0.1",
 		socksPort:    socksPort,
 		isRunning:    false,
+		stderrBuf:    &bytes.Buffer{},
+		stdoutBuf:    &bytes.Buffer{},
+		verbose:      false,
 	}
+}
+
+// SetVerbose enables verbose logging
+func (pm *ProxyManager) SetVerbose(verbose bool) {
+	pm.verbose = verbose
+}
+
+// GetBackendLogs returns captured backend logs
+func (pm *ProxyManager) GetBackendLogs() string {
+	if pm.stderrBuf.Len() > 0 {
+		return pm.stderrBuf.String()
+	}
+	if pm.stdoutBuf.Len() > 0 {
+		return pm.stdoutBuf.String()
+	}
+	return ""
+}
+
+// GetLastError returns a detailed error with diagnosis
+func (pm *ProxyManager) GetLastError(err error) *models.DetailedError {
+	backendLogs := pm.GetBackendLogs()
+	return models.AnalyzeError(err, string(pm.backend), backendLogs)
 }
 
 // Start starts the proxy
@@ -87,8 +116,17 @@ func (pm *ProxyManager) Start(ctx context.Context) error {
 	}
 
 	pm.proxyCmd = exec.CommandContext(ctx, binaryPath, args...)
-	pm.proxyCmd.Stdout = io.Discard
-	pm.proxyCmd.Stderr = io.Discard
+
+	// Capture stdout and stderr for diagnostics
+	if pm.verbose {
+		// In verbose mode, show output to user as well
+		pm.proxyCmd.Stdout = io.MultiWriter(pm.stdoutBuf, os.Stdout)
+		pm.proxyCmd.Stderr = io.MultiWriter(pm.stderrBuf, os.Stderr)
+	} else {
+		// Otherwise just capture to buffer
+		pm.proxyCmd.Stdout = pm.stdoutBuf
+		pm.proxyCmd.Stderr = pm.stderrBuf
+	}
 
 	if err := pm.proxyCmd.Start(); err != nil {
 		return fmt.Errorf("failed to start %s: %w", pm.backend, err)

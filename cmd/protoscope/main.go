@@ -125,7 +125,14 @@ func runQuickTests(ctx context.Context, runner *tester.TestRunner, protocols []*
 			if strings.Contains(result.Error, "not yet supported") {
 				fmt.Printf("       ⚠ Skipped: %s\n\n", result.Error)
 			} else {
-				fmt.Printf("       ✗ Failed: %s\n\n", result.Error)
+				fmt.Printf("       ✗ Failed: %s\n", result.Error)
+
+				// Show detailed error analysis if available
+				if result.ErrorDetails != nil {
+					fmt.Printf("       📋 Type: %s\n", result.ErrorDetails.Type)
+					fmt.Printf("       💡 Suggestion: %s\n", result.ErrorDetails.Suggestion)
+				}
+				fmt.Println()
 			}
 		}
 
@@ -157,7 +164,26 @@ func runFullTests(ctx context.Context, runner *tester.TestRunner, protocols []*m
 			if strings.Contains(result.Error, "not yet supported") {
 				fmt.Printf("       ⚠ Skipped: %s\n\n", result.Error)
 			} else {
-				fmt.Printf("       ✗ Failed: %s\n\n", result.Error)
+				fmt.Printf("       ✗ Failed: %s\n", result.Error)
+
+				// Show detailed error analysis if available
+				if result.ErrorDetails != nil {
+					fmt.Printf("       📋 Type: %s\n", result.ErrorDetails.Type)
+					if result.ErrorDetails.Details != "" {
+						fmt.Printf("       📝 Details: %s\n", result.ErrorDetails.Details)
+					}
+					if *verbose && result.ErrorDetails.BackendLog != "" {
+						fmt.Printf("       🔍 Backend Log:\n")
+						logLines := strings.Split(result.ErrorDetails.BackendLog, "\n")
+						for _, line := range logLines {
+							if strings.TrimSpace(line) != "" {
+								fmt.Printf("          %s\n", line)
+							}
+						}
+					}
+					fmt.Printf("       💡 Suggestion: %s\n", result.ErrorDetails.Suggestion)
+				}
+				fmt.Println()
 			}
 			continue
 		}
