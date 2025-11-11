@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/VenoMexx/ProtoScope/internal/parser"
@@ -120,7 +121,12 @@ func runQuickTests(ctx context.Context, runner *tester.TestRunner, protocols []*
 		if result.Success {
 			fmt.Printf("       ✓ Connected (%dms)\n\n", result.Connectivity.ResponseTime.Milliseconds())
 		} else {
-			fmt.Printf("       ✗ Failed: %s\n\n", result.Error)
+			// Check if it's an unsupported protocol error
+			if strings.Contains(result.Error, "not yet supported") {
+				fmt.Printf("       ⚠ Skipped: %s\n\n", result.Error)
+			} else {
+				fmt.Printf("       ✗ Failed: %s\n\n", result.Error)
+			}
 		}
 
 		results = append(results, result)
@@ -147,7 +153,12 @@ func runFullTests(ctx context.Context, runner *tester.TestRunner, protocols []*m
 		fmt.Printf("       Server: %s:%d\n", result.Protocol.Server, result.Protocol.Port)
 
 		if !result.Success {
-			fmt.Printf("       ✗ Failed: %s\n\n", result.Error)
+			// Check if it's an unsupported protocol error
+			if strings.Contains(result.Error, "not yet supported") {
+				fmt.Printf("       ⚠ Skipped: %s\n\n", result.Error)
+			} else {
+				fmt.Printf("       ✗ Failed: %s\n\n", result.Error)
+			}
 			continue
 		}
 
