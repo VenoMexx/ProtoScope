@@ -41,6 +41,32 @@
 - Real IP exposure check
 - Security score (0-100)
 
+## 📋 Requirements
+
+### System Requirements
+- Go 1.20 or higher
+- **Xray-core** (required for protocol testing)
+
+### Installing Xray
+
+**Linux:**
+```bash
+bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install
+```
+
+**macOS:**
+```bash
+brew install xray
+```
+
+**Windows:**
+Download from [Xray Releases](https://github.com/XTLS/Xray-core/releases)
+
+**Verify Installation:**
+```bash
+xray version
+```
+
 ## 🚀 Installation
 
 ### From Source
@@ -94,13 +120,47 @@ protoscope -url "https://example.com/subscription" -verbose
     Timeout for each test (default: 30s)
 
 -concurrent int
-    Number of concurrent tests (default: 5)
+    Number of concurrent tests (default: 3)
 
 -quick
     Quick mode - only connectivity tests
 
 -verbose
-    Enable verbose output
+    Enable verbose output with detailed results
+
+-no-speed
+    Disable speed tests (useful for faster testing)
+
+-no-geo
+    Disable geo-access tests
+
+-no-dns
+    Disable DNS leak and blocking tests
+
+-no-privacy
+    Disable privacy and security tests
+```
+
+### Advanced Usage
+
+```bash
+# Test only connectivity (fastest)
+protoscope -url <url> -quick
+
+# Skip speed tests for faster results
+protoscope -url <url> -no-speed
+
+# Full test with verbose output
+protoscope -url <url> -verbose
+
+# Test with custom concurrency
+protoscope -url <url> -concurrent 10
+
+# Export results to JSON
+protoscope -url <url> -format json > results.json
+
+# Generate markdown report
+protoscope -url <url> -format markdown > report.md
 ```
 
 ## 📊 Example Output
@@ -301,12 +361,17 @@ dns_blocking:
 - [x] DNS leak detection
 - [x] DNS blocking tests
 - [x] Privacy tests
-- [ ] Actual proxy connection implementation
-- [ ] WebRTC leak testing
+- [x] **Xray integration for real proxy connections**
+- [x] **Full test runner implementation**
+- [x] **Multiple output formats (console, JSON, markdown)**
+- [ ] WebRTC leak testing (browser automation required)
 - [ ] HTML report generation
-- [ ] Configuration file support
+- [ ] Configuration file support (YAML)
+- [ ] Hysteria2 native support (without Xray)
+- [ ] TUIC native support
 - [ ] CI/CD integration
 - [ ] Docker support
+- [ ] Batch testing from file
 
 ## 🤝 Contributing
 

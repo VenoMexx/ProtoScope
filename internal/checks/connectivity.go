@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"golang.org/x/net/proxy"
+
 	"github.com/VenoMexx/ProtoScope/pkg/models"
 )
 
