@@ -140,12 +140,3 @@ type Subscription struct {
 	Protocols []*Protocol `json:"protocols"`
 	ParsedAt  time.Time   `json:"parsed_at"`
 }
-
-// TestProgress represents the current progress of a test
-type TestProgress struct {
-	ProtocolIndex int
-	TotalProtocols int
-	Protocol      *Protocol
-	Stage         string // e.g., "Starting", "Connectivity", "Performance", "GeoAccess", "DNS", "Privacy", "Complete"
-	Message       string
-}
