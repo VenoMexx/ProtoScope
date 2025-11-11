@@ -6,24 +6,21 @@
 
 ### 🌐 Protocol Support
 
-| Protocol | Parse | Test | Status | Notes |
-|----------|-------|------|--------|-------|
-| **VMess** | ✅ | ✅ | Fully Supported | Via Xray-core |
-| **VLESS** | ✅ | ✅ | Fully Supported | Via Xray-core |
-| **Trojan** | ✅ | ✅ | Fully Supported | Via Xray-core |
-| **Shadowsocks** | ✅ | ✅ | Fully Supported | Via Xray-core |
-| **Hysteria2** | ✅ | ⚠️ | Parse Only | Requires native client (planned) |
-| **TUIC** | ✅ | ⚠️ | Parse Only | Requires native client (planned) |
+| Protocol | Parse | Test | Backend | Status |
+|----------|-------|------|---------|--------|
+| **VMess** | ✅ | ✅ | Xray | Fully Supported |
+| **VLESS** | ✅ | ✅ | Xray | Fully Supported |
+| **Trojan** | ✅ | ✅ | Xray | Fully Supported |
+| **Shadowsocks** | ✅ | ✅ | Xray | Fully Supported |
+| **Hysteria2** | ✅ | ✅ | Sing-box | Fully Supported |
+| **TUIC** | ✅ | ✅ | Sing-box | Fully Supported |
 
-**Legend:**
-- ✅ **Fully Supported**: Can parse and test the protocol
-- ⚠️ **Parse Only**: Can parse but not test (protocol requires native client not available in Xray)
-- ❌ **Not Supported**: Cannot parse or test
+**🎯 Hybrid Backend System:**
+ProtoScope automatically selects the best backend for each protocol:
+- **Xray-core**: Traditional protocols (VMess, VLESS, Trojan, Shadowsocks)
+- **Sing-box**: Modern QUIC-based protocols (Hysteria2, TUIC)
 
-**Why some protocols can't be tested?**
-- Xray-core supports: VMess, VLESS, Trojan, Shadowsocks, Socks, HTTP
-- Hysteria2 and TUIC are standalone protocols with their own implementations
-- Future versions will add native support for these protocols
+This hybrid approach ensures **all protocols can be tested** with their native implementations!
 
 ### 🔬 Test Categories
 
@@ -58,9 +55,12 @@
 
 ### System Requirements
 - Go 1.20 or higher
-- **Xray-core** (required for protocol testing)
+- **Xray-core** (for VMess, VLESS, Trojan, Shadowsocks)
+- **Sing-box** (for Hysteria2, TUIC) - Optional but recommended
 
-### Installing Xray
+### Installing Backends
+
+#### Xray-core (Required)
 
 **Linux:**
 ```bash
@@ -75,10 +75,32 @@ brew install xray
 **Windows:**
 Download from [Xray Releases](https://github.com/XTLS/Xray-core/releases)
 
-**Verify Installation:**
+**Verify:**
 ```bash
 xray version
 ```
+
+#### Sing-box (Optional - for Hysteria2/TUIC)
+
+**Linux:**
+```bash
+bash <(curl -fsSL https://sing-box.app/deb-install.sh)
+```
+
+**macOS:**
+```bash
+brew install sing-box
+```
+
+**Windows:**
+Download from [Sing-box Releases](https://github.com/SagerNet/sing-box/releases)
+
+**Verify:**
+```bash
+sing-box version
+```
+
+**Note:** ProtoScope will automatically use the appropriate backend for each protocol. Install both for full protocol support!
 
 ## 🚀 Installation
 
@@ -377,14 +399,16 @@ dns_blocking:
 - [x] **Xray integration for real proxy connections**
 - [x] **Full test runner implementation**
 - [x] **Multiple output formats (console, JSON, markdown)**
+- [x] **Hybrid backend system (Xray + Sing-box)**
+- [x] **Hysteria2 full support via Sing-box**
+- [x] **TUIC full support via Sing-box**
 - [ ] WebRTC leak testing (browser automation required)
 - [ ] HTML report generation
 - [ ] Configuration file support (YAML)
-- [ ] Hysteria2 native support (without Xray)
-- [ ] TUIC native support
 - [ ] CI/CD integration
 - [ ] Docker support
 - [ ] Batch testing from file
+- [ ] Streaming service tests (Netflix, YouTube)
 
 ## 🤝 Contributing
 

@@ -19,7 +19,8 @@ import (
 // ProxyManager manages proxy connections
 type ProxyManager struct {
 	protocol     *models.Protocol
-	xrayCmd      *exec.Cmd
+	backend      ProxyBackend
+	proxyCmd     *exec.Cmd
 	socksAddress string
 	socksPort    int
 	configFile   string
@@ -28,8 +29,10 @@ type ProxyManager struct {
 
 // NewProxyManager creates a new proxy manager
 func NewProxyManager(protocol *models.Protocol, socksPort int) *ProxyManager {
+	backend := SelectBackend(protocol)
 	return &ProxyManager{
 		protocol:     protocol,
+		backend:      backend,
 		socksAddress: "127.0.0.1",
 		socksPort:    socksPort,
 		isRunning:    false,
@@ -38,8 +41,24 @@ func NewProxyManager(protocol *models.Protocol, socksPort int) *ProxyManager {
 
 // Start starts the proxy
 func (pm *ProxyManager) Start(ctx context.Context) error {
-	// Generate Xray config
-	config, err := pm.generateXrayConfig()
+	// Check if backend is available
+	if !IsBackendAvailable(pm.backend) {
+		return fmt.Errorf("%s binary not found (please install %s)", pm.backend, pm.backend)
+	}
+
+	// Generate config based on backend
+	var config map[string]interface{}
+	var err error
+
+	switch pm.backend {
+	case BackendXray:
+		config, err = pm.generateXrayConfig()
+	case BackendSingbox:
+		config, err = pm.generateSingboxConfig()
+	default:
+		return fmt.Errorf("unsupported backend: %s", pm.backend)
+	}
+
 	if err != nil {
 		return fmt.Errorf("failed to generate config: %w", err)
 	}
@@ -51,19 +70,28 @@ func (pm *ProxyManager) Start(ctx context.Context) error {
 	}
 	pm.configFile = configFile
 
-	// Check if xray is available
-	xrayPath, err := exec.LookPath("xray")
+	// Get binary path
+	binaryName := GetBackendBinary(pm.backend)
+	binaryPath, err := exec.LookPath(binaryName)
 	if err != nil {
-		return fmt.Errorf("xray binary not found: %w (install xray or provide SOCKS5 proxy manually)", err)
+		return fmt.Errorf("%s binary not found: %w", binaryName, err)
 	}
 
-	// Start xray process
-	pm.xrayCmd = exec.CommandContext(ctx, xrayPath, "run", "-c", configFile)
-	pm.xrayCmd.Stdout = io.Discard
-	pm.xrayCmd.Stderr = io.Discard
+	// Start proxy process
+	var args []string
+	switch pm.backend {
+	case BackendXray:
+		args = []string{"run", "-c", configFile}
+	case BackendSingbox:
+		args = []string{"run", "-c", configFile}
+	}
 
-	if err := pm.xrayCmd.Start(); err != nil {
-		return fmt.Errorf("failed to start xray: %w", err)
+	pm.proxyCmd = exec.CommandContext(ctx, binaryPath, args...)
+	pm.proxyCmd.Stdout = io.Discard
+	pm.proxyCmd.Stderr = io.Discard
+
+	if err := pm.proxyCmd.Start(); err != nil {
+		return fmt.Errorf("failed to start %s: %w", pm.backend, err)
 	}
 
 	// Wait for proxy to be ready
@@ -78,9 +106,9 @@ func (pm *ProxyManager) Start(ctx context.Context) error {
 
 // Stop stops the proxy
 func (pm *ProxyManager) Stop() error {
-	if pm.xrayCmd != nil && pm.xrayCmd.Process != nil {
-		pm.xrayCmd.Process.Kill()
-		pm.xrayCmd.Wait()
+	if pm.proxyCmd != nil && pm.proxyCmd.Process != nil {
+		pm.proxyCmd.Process.Kill()
+		pm.proxyCmd.Wait()
 	}
 
 	if pm.configFile != "" {
