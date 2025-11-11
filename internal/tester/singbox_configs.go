@@ -177,6 +177,20 @@ func (pm *ProxyManager) generateSingboxVMessOutbound() (map[string]interface{}, 
 		if pm.protocol.SNI != "" {
 			tls["server_name"] = pm.protocol.SNI
 		}
+
+		// Add uTLS if fingerprint specified (optional for VMess)
+		if fp, ok := pm.protocol.Extra["fp"].(string); ok && fp != "" {
+			tls["utls"] = map[string]interface{}{
+				"enabled":     true,
+				"fingerprint": fp,
+			}
+		} else if fp, ok := pm.protocol.Extra["fingerprint"].(string); ok && fp != "" {
+			tls["utls"] = map[string]interface{}{
+				"enabled":     true,
+				"fingerprint": fp,
+			}
+		}
+
 		outbound["tls"] = tls
 	}
 
@@ -232,11 +246,43 @@ func (pm *ProxyManager) generateSingboxVLESSOutbound() (map[string]interface{}, 
 			tls["server_name"] = pm.protocol.SNI
 		}
 
-		// Check for reality
+		// Check for REALITY
 		if security, ok := pm.protocol.Extra["security"].(string); ok && security == "reality" {
-			tls["reality"] = map[string]interface{}{
+			reality := map[string]interface{}{
 				"enabled": true,
 			}
+
+			// Add public key
+			if publicKey, ok := pm.protocol.Extra["pbk"].(string); ok && publicKey != "" {
+				reality["public_key"] = publicKey
+			} else if publicKey, ok := pm.protocol.Extra["public_key"].(string); ok && publicKey != "" {
+				reality["public_key"] = publicKey
+			}
+
+			// Add short ID
+			if shortID, ok := pm.protocol.Extra["sid"].(string); ok && shortID != "" {
+				reality["short_id"] = shortID
+			} else if shortID, ok := pm.protocol.Extra["short_id"].(string); ok && shortID != "" {
+				reality["short_id"] = shortID
+			}
+
+			tls["reality"] = reality
+
+			// CRITICAL: uTLS is REQUIRED for REALITY
+			utls := map[string]interface{}{
+				"enabled": true,
+			}
+
+			// Add fingerprint (chrome is most common)
+			fingerprint := "chrome"
+			if fp, ok := pm.protocol.Extra["fp"].(string); ok && fp != "" {
+				fingerprint = fp
+			} else if fp, ok := pm.protocol.Extra["fingerprint"].(string); ok && fp != "" {
+				fingerprint = fp
+			}
+			utls["fingerprint"] = fingerprint
+
+			tls["utls"] = utls
 		}
 
 		outbound["tls"] = tls
@@ -262,6 +308,20 @@ func (pm *ProxyManager) generateSingboxTrojanOutbound() (map[string]interface{},
 	if pm.protocol.SNI != "" {
 		tls["server_name"] = pm.protocol.SNI
 	}
+
+	// Add uTLS if fingerprint specified (optional for Trojan)
+	if fp, ok := pm.protocol.Extra["fp"].(string); ok && fp != "" {
+		tls["utls"] = map[string]interface{}{
+			"enabled":     true,
+			"fingerprint": fp,
+		}
+	} else if fp, ok := pm.protocol.Extra["fingerprint"].(string); ok && fp != "" {
+		tls["utls"] = map[string]interface{}{
+			"enabled":     true,
+			"fingerprint": fp,
+		}
+	}
+
 	outbound["tls"] = tls
 
 	// Add transport settings
