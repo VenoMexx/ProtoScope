@@ -5,12 +5,25 @@
 ## ✨ Features
 
 ### 🌐 Protocol Support
-- **VMess** - V2Ray protocol
-- **VLESS** - Modern V2Ray protocol
-- **Trojan** - Trojan protocol
-- **Shadowsocks** - Classic proxy protocol
-- **Hysteria2** - QUIC-based protocol
-- **TUIC** - TCP/UDP hybrid protocol
+
+| Protocol | Parse | Test | Status | Notes |
+|----------|-------|------|--------|-------|
+| **VMess** | ✅ | ✅ | Fully Supported | Via Xray-core |
+| **VLESS** | ✅ | ✅ | Fully Supported | Via Xray-core |
+| **Trojan** | ✅ | ✅ | Fully Supported | Via Xray-core |
+| **Shadowsocks** | ✅ | ✅ | Fully Supported | Via Xray-core |
+| **Hysteria2** | ✅ | ⚠️ | Parse Only | Requires native client (planned) |
+| **TUIC** | ✅ | ⚠️ | Parse Only | Requires native client (planned) |
+
+**Legend:**
+- ✅ **Fully Supported**: Can parse and test the protocol
+- ⚠️ **Parse Only**: Can parse but not test (protocol requires native client not available in Xray)
+- ❌ **Not Supported**: Cannot parse or test
+
+**Why some protocols can't be tested?**
+- Xray-core supports: VMess, VLESS, Trojan, Shadowsocks, Socks, HTTP
+- Hysteria2 and TUIC are standalone protocols with their own implementations
+- Future versions will add native support for these protocols
 
 ### 🔬 Test Categories
 

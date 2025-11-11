@@ -72,6 +72,12 @@ func (tr *TestRunner) testProtocol(ctx context.Context, protocol *models.Protoco
 		Success:   false,
 	}
 
+	// Check if protocol is supported by Xray
+	if !isProtocolSupported(protocol.Type) {
+		result.Error = fmt.Sprintf("Protocol %s not yet supported (requires native client, not available in Xray)", protocol.Type)
+		return result
+	}
+
 	// Create proxy manager with dynamic port
 	socksPort := 10808 + (int(time.Now().UnixNano()) % 1000)
 	proxyMgr := NewProxyManager(protocol, socksPort)
@@ -174,6 +180,12 @@ func (tr *TestRunner) QuickTest(ctx context.Context, protocol *models.Protocol) 
 		Success:   false,
 	}
 
+	// Check if protocol is supported by Xray
+	if !isProtocolSupported(protocol.Type) {
+		result.Error = fmt.Sprintf("Protocol %s not yet supported (requires native client, not available in Xray)", protocol.Type)
+		return result, nil
+	}
+
 	// Create proxy manager
 	socksPort := 10808 + (int(time.Now().UnixNano()) % 1000)
 	proxyMgr := NewProxyManager(protocol, socksPort)
@@ -208,4 +220,21 @@ func (tr *TestRunner) QuickTest(ctx context.Context, protocol *models.Protocol) 
 	result.Success = true
 
 	return result, nil
+}
+
+// isProtocolSupported checks if a protocol is supported by Xray
+func isProtocolSupported(protocolType models.ProtocolType) bool {
+	switch protocolType {
+	case models.ProtocolVMess,
+		models.ProtocolVLESS,
+		models.ProtocolTrojan,
+		models.ProtocolShadowsocks:
+		return true
+	case models.ProtocolHysteria2,
+		models.ProtocolTUIC:
+		// These protocols require native clients, not supported by Xray
+		return false
+	default:
+		return false
+	}
 }
