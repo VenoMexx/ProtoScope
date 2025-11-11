@@ -27,15 +27,20 @@ func NewTestRunner(config *models.Config) *TestRunner {
 
 // RunTests runs all tests for the given protocols
 func (tr *TestRunner) RunTests(ctx context.Context, protocols []*models.Protocol) ([]*models.TestResult, error) {
-	return tr.runTests(ctx, protocols, nil)
+	return tr.runTests(ctx, protocols, nil, nil)
 }
 
 // RunTestsStream runs tests and invokes onResult for each completed protocol.
 func (tr *TestRunner) RunTestsStream(ctx context.Context, protocols []*models.Protocol, onResult func(int, *models.TestResult)) ([]*models.TestResult, error) {
-	return tr.runTests(ctx, protocols, onResult)
+	return tr.runTests(ctx, protocols, onResult, nil)
 }
 
-func (tr *TestRunner) runTests(ctx context.Context, protocols []*models.Protocol, onResult func(int, *models.TestResult)) ([]*models.TestResult, error) {
+// RunTestsStreamWithProgress runs tests and invokes onProgress for live updates and onResult for completed protocols.
+func (tr *TestRunner) RunTestsStreamWithProgress(ctx context.Context, protocols []*models.Protocol, onProgress func(*models.TestProgress), onResult func(int, *models.TestResult)) ([]*models.TestResult, error) {
+	return tr.runTests(ctx, protocols, onResult, onProgress)
+}
+
+func (tr *TestRunner) runTests(ctx context.Context, protocols []*models.Protocol, onResult func(int, *models.TestResult), onProgress func(*models.TestProgress)) ([]*models.TestResult, error) {
 	// Get real IP first (without proxy)
 	realIP, err := checks.GetRealIP(ctx)
 	if err != nil {
@@ -60,7 +65,21 @@ func (tr *TestRunner) runTests(ctx context.Context, protocols []*models.Protocol
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			result := tr.testProtocol(ctx, proto)
+			// Create progress callback for this protocol
+			var progressCallback func(stage, message string)
+			if onProgress != nil {
+				progressCallback = func(stage, message string) {
+					onProgress(&models.TestProgress{
+						ProtocolIndex:  idx,
+						TotalProtocols: len(protocols),
+						Protocol:       proto,
+						Stage:          stage,
+						Message:        message,
+					})
+				}
+			}
+
+			result := tr.testProtocol(ctx, proto, progressCallback)
 
 			if onResult != nil {
 				onResult(idx, result)
@@ -78,11 +97,15 @@ func (tr *TestRunner) runTests(ctx context.Context, protocols []*models.Protocol
 }
 
 // testProtocol tests a single protocol
-func (tr *TestRunner) testProtocol(ctx context.Context, protocol *models.Protocol) *models.TestResult {
+func (tr *TestRunner) testProtocol(ctx context.Context, protocol *models.Protocol, onProgress func(stage, message string)) *models.TestResult {
 	result := &models.TestResult{
 		Protocol:  protocol,
 		Timestamp: time.Now(),
 		Success:   false,
+	}
+
+	if onProgress != nil {
+		onProgress("Starting", "Initializing proxy...")
 	}
 
 	// Create proxy manager with dynamic port
@@ -92,6 +115,10 @@ func (tr *TestRunner) testProtocol(ctx context.Context, protocol *models.Protoco
 	// Start proxy
 	proxyCtx, cancel := context.WithTimeout(ctx, tr.config.TestConfig.Timeout)
 	defer cancel()
+
+	if onProgress != nil {
+		onProgress("Starting", "Starting proxy backend...")
+	}
 
 	if err := proxyMgr.Start(proxyCtx); err != nil {
 		result.Error = fmt.Sprintf("Failed to start proxy: %v", err)
@@ -109,6 +136,10 @@ func (tr *TestRunner) testProtocol(ctx context.Context, protocol *models.Protoco
 	}
 
 	// Run connectivity test
+	if onProgress != nil {
+		onProgress("Connectivity", "Testing connection...")
+	}
+
 	connectivityChecker := checks.NewConnectivityChecker(10 * time.Second)
 	connectivityResult, err := connectivityChecker.CheckHTTP(proxyCtx, "http://www.gstatic.com/generate_204", client)
 	if err != nil || !connectivityResult.Connected {
@@ -121,6 +152,9 @@ func (tr *TestRunner) testProtocol(ctx context.Context, protocol *models.Protoco
 
 	// Run performance tests if enabled
 	if tr.config.TestConfig.EnableSpeedTest {
+		if onProgress != nil {
+			onProgress("Performance", "Testing speed and latency...")
+		}
 		perfChecker := checks.NewPerformanceChecker(30 * time.Second)
 		perfResult, err := perfChecker.Check(proxyCtx, client)
 		if err == nil {
@@ -130,6 +164,9 @@ func (tr *TestRunner) testProtocol(ctx context.Context, protocol *models.Protoco
 
 	// Run geo-access tests if enabled
 	if tr.config.TestConfig.EnableGeoTest {
+		if onProgress != nil {
+			onProgress("GeoAccess", "Testing geo-restrictions...")
+		}
 		geoChecker := checks.NewGeoAccessChecker(10 * time.Second)
 		geoResult, err := geoChecker.Check(proxyCtx, client)
 		if err == nil {
@@ -139,6 +176,9 @@ func (tr *TestRunner) testProtocol(ctx context.Context, protocol *models.Protoco
 
 	// Run DNS tests if enabled
 	if tr.config.TestConfig.EnableDNSTest {
+		if onProgress != nil {
+			onProgress("DNS", "Testing DNS leak and blocking...")
+		}
 		// Try to get expected country from geo result
 		expectedCountry := ""
 		if result.GeoAccess != nil {
@@ -157,11 +197,18 @@ func (tr *TestRunner) testProtocol(ctx context.Context, protocol *models.Protoco
 
 	// Run privacy tests if enabled
 	if tr.config.TestConfig.EnablePrivacyTest {
+		if onProgress != nil {
+			onProgress("Privacy", "Testing privacy and security...")
+		}
 		privacyChecker := checks.NewPrivacyChecker(tr.realIP)
 		privacyResult, err := privacyChecker.Check(proxyCtx, client)
 		if err == nil {
 			result.Privacy = privacyResult
 		}
+	}
+
+	if onProgress != nil {
+		onProgress("Complete", "Test completed")
 	}
 
 	return result
@@ -177,7 +224,7 @@ func (tr *TestRunner) TestSingle(ctx context.Context, protocol *models.Protocol)
 		}
 	}
 
-	result := tr.testProtocol(ctx, protocol)
+	result := tr.testProtocol(ctx, protocol, nil)
 	return result, nil
 }
 
