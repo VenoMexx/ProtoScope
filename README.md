@@ -6,21 +6,22 @@
 
 ### 🌐 Protocol Support
 
-| Protocol | Parse | Test | Backend | Status |
-|----------|-------|------|---------|--------|
-| **VMess** | ✅ | ✅ | Xray | Fully Supported |
-| **VLESS** | ✅ | ✅ | Xray | Fully Supported |
-| **Trojan** | ✅ | ✅ | Xray | Fully Supported |
-| **Shadowsocks** | ✅ | ✅ | Xray | Fully Supported |
-| **Hysteria2** | ✅ | ✅ | Sing-box | Fully Supported |
-| **TUIC** | ✅ | ✅ | Sing-box | Fully Supported |
+| Protocol | Parse | Test | Status |
+|----------|-------|------|--------|
+| **VMess** | ✅ | ✅ | Fully Supported |
+| **VLESS** | ✅ | ✅ | Fully Supported |
+| **Trojan** | ✅ | ✅ | Fully Supported |
+| **Shadowsocks** | ✅ | ✅ | Fully Supported |
+| **Hysteria2** | ✅ | ✅ | Fully Supported |
+| **TUIC** | ✅ | ✅ | Fully Supported |
 
-**🎯 Hybrid Backend System:**
-ProtoScope automatically selects the best backend for each protocol:
-- **Xray-core**: Traditional protocols (VMess, VLESS, Trojan, Shadowsocks)
-- **Sing-box**: Modern QUIC-based protocols (Hysteria2, TUIC)
+**🎯 Powered by Sing-box:**
+ProtoScope uses **Sing-box** as the universal backend for all protocols. Sing-box is a modern, feature-rich proxy platform that supports:
+- ✅ Traditional protocols (VMess, VLESS, Trojan, Shadowsocks)
+- ✅ Modern QUIC-based protocols (Hysteria2, TUIC)
+- ✅ And many more!
 
-This hybrid approach ensures **all protocols can be tested** with their native implementations!
+This unified approach provides **maximum compatibility** with a single, powerful backend!
 
 ### 🔬 Test Categories
 
@@ -55,32 +56,9 @@ This hybrid approach ensures **all protocols can be tested** with their native i
 
 ### System Requirements
 - Go 1.20 or higher
-- **Xray-core** (for VMess, VLESS, Trojan, Shadowsocks)
-- **Sing-box** (for Hysteria2, TUIC) - Optional but recommended
+- **Sing-box** (Required)
 
-### Installing Backends
-
-#### Xray-core (Required)
-
-**Linux:**
-```bash
-bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install
-```
-
-**macOS:**
-```bash
-brew install xray
-```
-
-**Windows:**
-Download from [Xray Releases](https://github.com/XTLS/Xray-core/releases)
-
-**Verify:**
-```bash
-xray version
-```
-
-#### Sing-box (Optional - for Hysteria2/TUIC)
+### Installing Sing-box
 
 **Linux:**
 ```bash
@@ -95,12 +73,12 @@ brew install sing-box
 **Windows:**
 Download from [Sing-box Releases](https://github.com/SagerNet/sing-box/releases)
 
-**Verify:**
+**Verify Installation:**
 ```bash
 sing-box version
 ```
 
-**Note:** ProtoScope will automatically use the appropriate backend for each protocol. Install both for full protocol support!
+**Why Sing-box?** ProtoScope uses Sing-box as the universal backend because it natively supports **all protocols** including traditional ones (VMess, VLESS, Trojan, Shadowsocks) and modern QUIC-based protocols (Hysteria2, TUIC)!
 
 ## 🚀 Installation
 
@@ -396,12 +374,12 @@ dns_blocking:
 - [x] DNS leak detection
 - [x] DNS blocking tests
 - [x] Privacy tests
-- [x] **Xray integration for real proxy connections**
+- [x] **Sing-box integration for all protocols**
 - [x] **Full test runner implementation**
 - [x] **Multiple output formats (console, JSON, markdown)**
-- [x] **Hybrid backend system (Xray + Sing-box)**
-- [x] **Hysteria2 full support via Sing-box**
-- [x] **TUIC full support via Sing-box**
+- [x] **Universal backend using Sing-box only**
+- [x] **All protocols support (VMess, VLESS, Trojan, Shadowsocks, Hysteria2, TUIC)**
+- [x] **Comprehensive error diagnostics and troubleshooting**
 - [ ] WebRTC leak testing (browser automation required)
 - [ ] HTML report generation
 - [ ] Configuration file support (YAML)
