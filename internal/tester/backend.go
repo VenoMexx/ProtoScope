@@ -17,18 +17,13 @@ const (
 )
 
 // SelectBackend selects the appropriate backend for a protocol
+// Currently always returns Sing-box as it supports all protocols
 func SelectBackend(protocol *models.Protocol) ProxyBackend {
-	switch protocol.Type {
-	case models.ProtocolHysteria2, models.ProtocolTUIC:
-		// Use sing-box for protocols not supported by Xray
-		return BackendSingbox
-	case models.ProtocolVMess, models.ProtocolVLESS, models.ProtocolTrojan, models.ProtocolShadowsocks:
-		// Use Xray for traditional protocols
-		return BackendXray
-	default:
-		// Default to Xray
-		return BackendXray
-	}
+	// Sing-box supports all protocols:
+	// - VMess, VLESS, Trojan, Shadowsocks (traditional)
+	// - Hysteria2, TUIC (modern QUIC-based)
+	// - And more!
+	return BackendSingbox
 }
 
 // IsBackendAvailable checks if a backend binary is available
