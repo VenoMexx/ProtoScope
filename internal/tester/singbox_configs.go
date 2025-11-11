@@ -74,6 +74,12 @@ func (pm *ProxyManager) generateHysteria2Outbound() (map[string]interface{}, err
 		}
 		// Hysteria2 often uses self-signed certs
 		tls["insecure"] = true
+
+		// Add ALPN to TLS if present
+		if alpn, ok := pm.protocol.Extra["alpn"].(string); ok && alpn != "" {
+			tls["alpn"] = []string{alpn}
+		}
+
 		outbound["tls"] = tls
 	}
 
@@ -110,16 +116,17 @@ func (pm *ProxyManager) generateTUICOutbound() (map[string]interface{}, error) {
 	if pm.protocol.SNI != "" {
 		tls["server_name"] = pm.protocol.SNI
 	}
+
+	// Add ALPN to TLS (not root level!)
+	if alpn, ok := pm.protocol.Extra["alpn"].(string); ok && alpn != "" {
+		tls["alpn"] = []string{alpn}
+	}
+
 	outbound["tls"] = tls
 
 	// Add congestion control if present
 	if cc, ok := pm.protocol.Extra["congestion_control"].(string); ok && cc != "" {
 		outbound["congestion_control"] = cc
-	}
-
-	// Add ALPN if present
-	if alpn, ok := pm.protocol.Extra["alpn"].(string); ok && alpn != "" {
-		outbound["alpn"] = []string{alpn}
 	}
 
 	return outbound, nil
