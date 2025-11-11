@@ -72,9 +72,9 @@ func (tr *TestRunner) testProtocol(ctx context.Context, protocol *models.Protoco
 		Success:   false,
 	}
 
-	// Create embedded proxy manager with dynamic port
+	// Create proxy manager with dynamic port
 	socksPort := 10808 + (int(time.Now().UnixNano()) % 1000)
-	proxyMgr := NewProxyManagerV2(protocol, socksPort)
+	proxyMgr := NewProxyManager(protocol, socksPort)
 
 	// Start proxy
 	proxyCtx, cancel := context.WithTimeout(ctx, tr.config.TestConfig.Timeout)
@@ -176,9 +176,9 @@ func (tr *TestRunner) QuickTest(ctx context.Context, protocol *models.Protocol) 
 		Success:   false,
 	}
 
-	// Create embedded proxy manager
+	// Create proxy manager
 	socksPort := 10808 + (int(time.Now().UnixNano()) % 1000)
-	proxyMgr := NewProxyManagerV2(protocol, socksPort)
+	proxyMgr := NewProxyManager(protocol, socksPort)
 
 	// Start proxy
 	proxyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
