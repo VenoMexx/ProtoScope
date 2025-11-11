@@ -70,16 +70,7 @@ func main() {
 	if *protocolsFilter != "" {
 		fmt.Printf("🔍 Filtered to %d protocols: %s\n", len(filteredProtocols), *protocolsFilter)
 	}
-
-	// List all protocols that will be tested
 	fmt.Println()
-	fmt.Println("📋 Protocols to be tested:")
-	fmt.Println("===========================================")
-	for i, protocol := range filteredProtocols {
-		fmt.Printf("  [%d] %s\n", i+1, protocol.Name)
-		fmt.Printf("      Type: %s | Server: %s:%d\n", protocol.Type, protocol.Server, protocol.Port)
-	}
-	fmt.Println("===========================================")
 
 	// Create test configuration
 	config := createConfig()
@@ -193,64 +184,16 @@ func runFullTests(ctx context.Context, runner *tester.TestRunner, protocols []*m
 	total := len(protocols)
 	var printMu sync.Mutex
 
-	// Track current line for each protocol to update in place
-	currentLines := make(map[int]string)
+	results, err := runner.RunTestsStream(ctx, protocols, func(idx int, result *models.TestResult) {
+		if result == nil || result.Protocol == nil {
+			return
+		}
 
-	results, err := runner.RunTestsStreamWithProgress(ctx, protocols,
-		// Progress callback
-		func(progress *models.TestProgress) {
-			printMu.Lock()
-			defer printMu.Unlock()
+		printMu.Lock()
+		defer printMu.Unlock()
 
-			idx := progress.ProtocolIndex
-
-			// Format progress message
-			var stageIcon string
-			switch progress.Stage {
-			case "Starting":
-				stageIcon = "🔄"
-			case "Connectivity":
-				stageIcon = "🌐"
-			case "Performance":
-				stageIcon = "⚡"
-			case "GeoAccess":
-				stageIcon = "🌍"
-			case "DNS":
-				stageIcon = "🔒"
-			case "Privacy":
-				stageIcon = "🔐"
-			case "Complete":
-				stageIcon = "✓"
-			default:
-				stageIcon = "⏳"
-			}
-
-			// Create progress line
-			line := fmt.Sprintf("[%d/%d] %s %s [%s] - %s: %s",
-				idx+1, total,
-				stageIcon,
-				progress.Protocol.Name,
-				progress.Protocol.Type,
-				progress.Stage,
-				progress.Message)
-
-			// Only print if this is a new update (avoid duplicate lines)
-			if currentLines[idx] != line && progress.Stage != "Complete" {
-				fmt.Println(line)
-				currentLines[idx] = line
-			}
-		},
-		// Result callback
-		func(idx int, result *models.TestResult) {
-			if result == nil || result.Protocol == nil {
-				return
-			}
-
-			printMu.Lock()
-			defer printMu.Unlock()
-
-			printFullTestResult(result, idx, total)
-		})
+		printFullTestResult(result, idx, total)
+	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "❌ Error running tests: %v\n", err)
 		os.Exit(1)
