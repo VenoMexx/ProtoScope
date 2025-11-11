@@ -25,6 +25,7 @@ var (
 	noGeoTest       = flag.Bool("no-geo", false, "Disable geo-access tests")
 	noDNSTest       = flag.Bool("no-dns", false, "Disable DNS tests")
 	noPrivacyTest   = flag.Bool("no-privacy", false, "Disable privacy tests")
+	protocolsFilter = flag.String("protocols", "", "Filter protocols (comma-separated: vmess,vless,trojan,shadowsocks,hysteria2,tuic)")
 )
 
 func main() {
@@ -58,6 +59,16 @@ func main() {
 		fmt.Println("No protocols found in subscription")
 		os.Exit(0)
 	}
+
+	// Filter protocols if requested
+	filteredProtocols := filterProtocols(subscription.Protocols)
+	if len(filteredProtocols) == 0 {
+		fmt.Printf("❌ No protocols matched the filter: %s\n", *protocolsFilter)
+		os.Exit(1)
+	}
+	if *protocolsFilter != "" {
+		fmt.Printf("🔍 Filtered to %d protocols: %s\n", len(filteredProtocols), *protocolsFilter)
+	}
 	fmt.Println()
 
 	// Create test configuration
@@ -71,11 +82,11 @@ func main() {
 	if *quickMode {
 		fmt.Println("🚀 Running quick connectivity tests...")
 		fmt.Println()
-		results = runQuickTests(ctx, runner, subscription.Protocols)
+		results = runQuickTests(ctx, runner, filteredProtocols)
 	} else {
 		fmt.Println("🔍 Running comprehensive tests...")
 		fmt.Println()
-		results = runFullTests(ctx, runner, subscription.Protocols)
+		results = runFullTests(ctx, runner, filteredProtocols)
 	}
 
 	// Output results
@@ -88,6 +99,31 @@ func main() {
 	default:
 		outputConsole(results)
 	}
+}
+
+// filterProtocols filters protocols based on the --protocols flag
+func filterProtocols(protocols []*models.Protocol) []*models.Protocol {
+	// If no filter specified, return all
+	if *protocolsFilter == "" {
+		return protocols
+	}
+
+	// Parse requested protocol types
+	requestedTypes := make(map[models.ProtocolType]bool)
+	for _, p := range strings.Split(*protocolsFilter, ",") {
+		p = strings.TrimSpace(strings.ToLower(p))
+		requestedTypes[models.ProtocolType(p)] = true
+	}
+
+	// Filter protocols
+	filtered := make([]*models.Protocol, 0)
+	for _, protocol := range protocols {
+		if requestedTypes[protocol.Type] {
+			filtered = append(filtered, protocol)
+		}
+	}
+
+	return filtered
 }
 
 // createConfig creates test configuration from flags

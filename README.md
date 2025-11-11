@@ -109,8 +109,13 @@ go install github.com/VenoMexx/ProtoScope/cmd/protoscope@latest
 ### Basic Usage
 
 ```bash
-# Test a subscription URL
+# Test a subscription URL (all protocols)
 protoscope -url "https://example.com/subscription"
+
+# Test only specific protocols
+protoscope -url "https://example.com/subscription" -protocols vless,vmess
+protoscope -url "https://example.com/subscription" -protocols tuic
+protoscope -url "https://example.com/subscription" -protocols hysteria2,tuic
 
 # Quick mode (connectivity only)
 protoscope -url "https://example.com/subscription" -quick
@@ -149,6 +154,11 @@ protoscope -url "https://example.com/subscription" -verbose
 -verbose
     Enable verbose output with detailed results
 
+-protocols string
+    Filter protocols (comma-separated: vmess,vless,trojan,shadowsocks,hysteria2,tuic)
+    Examples: "vless", "vmess,vless", "tuic,hysteria2"
+    Default: test all protocols
+
 -no-speed
     Disable speed tests (useful for faster testing)
 
@@ -182,6 +192,18 @@ protoscope -url <url> -format json > results.json
 
 # Generate markdown report
 protoscope -url <url> -format markdown > report.md
+
+# Test only modern QUIC protocols
+protoscope -url <url> -protocols hysteria2,tuic
+
+# Test only traditional protocols
+protoscope -url <url> -protocols vmess,vless,trojan,shadowsocks
+
+# Quick test only VLESS protocols
+protoscope -url <url> -protocols vless -quick
+
+# Combine filters: test only Hysteria2 with full tests
+protoscope -url <url> -protocols hysteria2 -verbose
 ```
 
 ## 📊 Example Output
