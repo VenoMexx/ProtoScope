@@ -37,7 +37,7 @@ type VMessConfig struct {
 	Add  string         `json:"add"`
 	Port stringOrNumber `json:"port"`
 	ID   string         `json:"id"`
-	AID  string         `json:"aid"`
+	AID  stringOrNumber `json:"aid"` // Can be string or number
 	Net  string         `json:"net"`
 	Type string         `json:"type"`
 	Host string         `json:"host"`
@@ -88,7 +88,7 @@ func ParseVMess(url string) (*models.Protocol, error) {
 		SNI:     config.SNI,
 		Raw:     url,
 		Extra: map[string]interface{}{
-			"aid":  config.AID,
+			"aid":  string(config.AID),
 			"host": config.Host,
 			"path": config.Path,
 			"type": config.Type,

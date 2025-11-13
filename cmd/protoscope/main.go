@@ -16,27 +16,33 @@ import (
 )
 
 var (
-	subscriptionURL = flag.String("url", "", "Subscription URL to test")
-	outputFormat    = flag.String("format", "console", "Output format (console, json, markdown)")
-	timeout         = flag.Duration("timeout", 30*time.Second, "Timeout for each test")
-	concurrency     = flag.Int("concurrent", 3, "Number of concurrent tests")
-	quickMode       = flag.Bool("quick", false, "Quick mode (connectivity only)")
-	verbose         = flag.Bool("verbose", false, "Verbose output")
-	noSpeedTest     = flag.Bool("no-speed", false, "Disable speed tests")
-	noGeoTest       = flag.Bool("no-geo", false, "Disable geo-access tests")
-	noDNSTest       = flag.Bool("no-dns", false, "Disable DNS tests")
-	noPrivacyTest   = flag.Bool("no-privacy", false, "Disable privacy tests")
-	protocolsFilter = flag.String("protocols", "", "Filter protocols (comma-separated: vmess,vless,trojan,shadowsocks,hysteria2,tuic)")
+	subscriptionURL  = flag.String("url", "", "Subscription URL to test")
+	subscriptionFile = flag.String("file", "", "Subscription file to test (alternative to -url)")
+	outputFormat     = flag.String("format", "console", "Output format (console, json, markdown)")
+	timeout          = flag.Duration("timeout", 30*time.Second, "Timeout for each test")
+	concurrency      = flag.Int("concurrent", 3, "Number of concurrent tests")
+	quickMode        = flag.Bool("quick", false, "Quick mode (connectivity only)")
+	verbose          = flag.Bool("verbose", false, "Verbose output")
+	noSpeedTest      = flag.Bool("no-speed", false, "Disable speed tests")
+	noGeoTest        = flag.Bool("no-geo", false, "Disable geo-access tests")
+	noDNSTest        = flag.Bool("no-dns", false, "Disable DNS tests")
+	noPrivacyTest    = flag.Bool("no-privacy", false, "Disable privacy tests")
+	protocolsFilter  = flag.String("protocols", "", "Filter protocols (comma-separated: vmess,vless,trojan,shadowsocks,hysteria2,tuic)")
 )
 
 func main() {
 	flag.Parse()
 
-	if *subscriptionURL == "" {
+	if *subscriptionURL == "" && *subscriptionFile == "" {
 		fmt.Println("ProtoScope - Protocol Security Tester")
-		fmt.Println("Usage: protoscope -url <subscription-url>")
+		fmt.Println("Usage: protoscope -url <subscription-url> OR -file <subscription-file>")
 		fmt.Println()
 		flag.PrintDefaults()
+		os.Exit(1)
+	}
+
+	if *subscriptionURL != "" && *subscriptionFile != "" {
+		fmt.Println("❌ Error: Please specify either -url or -file, not both")
 		os.Exit(1)
 	}
 
@@ -46,10 +52,19 @@ func main() {
 	fmt.Println("ProtoScope v0.2.0 - Protocol Security Tester")
 	fmt.Println("===========================================")
 	fmt.Println()
-	fmt.Printf("📡 Fetching subscription from: %s\n", *subscriptionURL)
 
 	decoder := parser.NewDecoder()
-	subscription, err := decoder.DecodeSubscription(*subscriptionURL)
+	var subscription *models.Subscription
+	var err error
+
+	if *subscriptionFile != "" {
+		fmt.Printf("📁 Reading subscription from file: %s\n", *subscriptionFile)
+		subscription, err = decoder.DecodeFromFile(*subscriptionFile)
+	} else {
+		fmt.Printf("📡 Fetching subscription from: %s\n", *subscriptionURL)
+		subscription, err = decoder.DecodeSubscription(*subscriptionURL)
+	}
+
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "❌ Error: Failed to decode subscription: %v\n", err)
 		os.Exit(1)

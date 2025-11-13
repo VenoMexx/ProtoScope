@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -22,6 +23,13 @@ func NewDecoder() *Decoder {
 	return &Decoder{
 		client: &http.Client{
 			Timeout: 30 * time.Second,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				// Follow redirects automatically (default limit is 10)
+				if len(via) >= 10 {
+					return fmt.Errorf("stopped after 10 redirects")
+				}
+				return nil
+			},
 		},
 	}
 }
@@ -56,7 +64,15 @@ func (d *Decoder) DecodeSubscription(url string) (*models.Subscription, error) {
 
 // fetchSubscription fetches subscription content from URL
 func (d *Decoder) fetchSubscription(url string) (string, error) {
-	resp, err := d.client.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", err
+	}
+
+	// Set User-Agent to avoid blocking
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+
+	resp, err := d.client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -102,7 +118,10 @@ func (d *Decoder) parseProtocols(content string) ([]*models.Protocol, error) {
 	var protocols []*models.Protocol
 
 	scanner := bufio.NewScanner(strings.NewReader(content))
+	lineNum := 0
+	skippedCount := 0
 	for scanner.Scan() {
+		lineNum++
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
 			continue
@@ -111,10 +130,21 @@ func (d *Decoder) parseProtocols(content string) ([]*models.Protocol, error) {
 		protocol, err := d.parseProtocolLine(line)
 		if err != nil {
 			// Skip invalid lines but continue parsing
+			skippedCount++
+			fmt.Printf("[DEBUG] Line %d - Skipped: %v\n", lineNum, err)
+			if len(line) > 120 {
+				fmt.Printf("[DEBUG]   Content: %s...\n", line[:120])
+			} else {
+				fmt.Printf("[DEBUG]   Content: %s\n", line)
+			}
 			continue
 		}
 
 		protocols = append(protocols, protocol)
+	}
+
+	if skippedCount > 0 {
+		fmt.Printf("\n⚠️  Warning: Skipped %d lines due to parse errors\n\n", skippedCount)
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -151,6 +181,28 @@ func (d *Decoder) parseProtocolLine(line string) (*models.Protocol, error) {
 
 // DecodeFromFile decodes protocols from a local file
 func (d *Decoder) DecodeFromFile(filepath string) (*models.Subscription, error) {
-	// This will be implemented if needed
-	return nil, fmt.Errorf("file decoding not yet implemented")
+	// Read file content
+	content, err := os.ReadFile(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// Try to decode as base64
+	decoded, err := d.decodeBase64(string(content))
+	if err != nil {
+		// If base64 decode fails, use content as-is
+		decoded = string(content)
+	}
+
+	// Parse protocols from decoded content
+	protocols, err := d.parseProtocols(decoded)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse protocols: %w", err)
+	}
+
+	return &models.Subscription{
+		URL:       filepath,
+		Protocols: protocols,
+		ParsedAt:  time.Now(),
+	}, nil
 }
