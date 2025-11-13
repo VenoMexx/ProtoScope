@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -180,6 +181,28 @@ func (d *Decoder) parseProtocolLine(line string) (*models.Protocol, error) {
 
 // DecodeFromFile decodes protocols from a local file
 func (d *Decoder) DecodeFromFile(filepath string) (*models.Subscription, error) {
-	// This will be implemented if needed
-	return nil, fmt.Errorf("file decoding not yet implemented")
+	// Read file content
+	content, err := os.ReadFile(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// Try to decode as base64
+	decoded, err := d.decodeBase64(string(content))
+	if err != nil {
+		// If base64 decode fails, use content as-is
+		decoded = string(content)
+	}
+
+	// Parse protocols from decoded content
+	protocols, err := d.parseProtocols(decoded)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse protocols: %w", err)
+	}
+
+	return &models.Subscription{
+		URL:       filepath,
+		Protocols: protocols,
+		ParsedAt:  time.Now(),
+	}, nil
 }
